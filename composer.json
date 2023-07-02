@@ -12,6 +12,7 @@
         "laravel/tinker": "^2.8",
         "league/oauth2-client": "^2.7",
         "microsoft/microsoft-graph": "^1.101",
+        "spatie/laravel-permission": "^5.10",
         "spatie/simple-excel": "^3.2"
     },
     "require-dev": {
