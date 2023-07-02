@@ -3,6 +3,7 @@
 namespace App\Modules\Datatables\Traits;
 
 use Exception;
+use OpenSpout\Common\Entity\Row;
 use Spatie\SimpleExcel\SimpleExcelWriter;
 
 trait WithExport
@@ -23,6 +24,8 @@ trait WithExport
         $writer->addHeader($headers);
 
         $this->queryBuilder->chunk(200, function($rows) use ($writer){
+            $rows = $rows->toArray();
+
             $this->rows = $rows;
 
             if($this->willMapRow){
@@ -30,7 +33,6 @@ trait WithExport
             }
 
             $rows = $this->rows;
-
             $writer->addRows($rows);
         });
 
