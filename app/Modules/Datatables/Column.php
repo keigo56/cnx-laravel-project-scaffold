@@ -12,6 +12,8 @@ class Column
 
     private string $datatype = 'string';
 
+    private bool $isVisible = true;
+
     private static array $operations = [
         'string' => [
             Operations::DOES_NOT_CONTAIN,
@@ -73,6 +75,13 @@ class Column
         $this->label = $label;
         return $this;
     }
+
+    public function visible(string $isVisible): Column
+    {
+        $this->isVisible = $isVisible;
+        return $this;
+    }
+
     public function string() : Column
     {
         $this->datatype = 'string';
@@ -117,5 +126,10 @@ class Column
 
     public function getOperation(): array {
         return self::$operations[$this->datatype] ?? [];
+    }
+
+    public function getIsVisible() : bool
+    {
+        return $this->isVisible;
     }
 }

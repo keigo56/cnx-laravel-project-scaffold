@@ -51,7 +51,8 @@ class Columns
             'key' => $column->getKey(),
             'label' => $column->getLabel(),
             'datatype' => $column->getDatatype(),
-            'operations' => $column->getOperation()
+            'operations' => $column->getOperation(),
+            'visible' => $column->getIsVisible()
         ];
     }
 
