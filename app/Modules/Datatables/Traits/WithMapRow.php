@@ -38,7 +38,7 @@ trait WithMapRow
 
         foreach ($rows as $row){
             $rowObj = new Row();
-            $rowObj->setRowValue($row);
+            $rowObj->setRowValue((array)$row);
             call_user_func($this->callback, $rowObj);
             $formattedRows[] = $rowObj->getRow();
         }

@@ -3,8 +3,11 @@
 namespace App\Modules\Datatables\Traits;
 
 use Exception;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Log;
 use OpenSpout\Common\Entity\Row;
 use Spatie\SimpleExcel\SimpleExcelWriter;
+use stdClass;
 
 trait WithExport
 {
@@ -22,9 +25,11 @@ trait WithExport
         $writer = SimpleExcelWriter::streamDownload($this->exportName . '.csv');
         $headers = collect($this->columns->toArray())->pluck('key')->toArray();
         $writer->addHeader($headers);
-
+        
         $this->queryBuilder->chunk(200, function($rows) use ($writer){
+
             $rows = $rows->toArray();
+            $rows = json_decode(json_encode($rows), true);
 
             $this->rows = $rows;
 
