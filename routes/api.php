@@ -29,6 +29,12 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::post('/datatable/roles/column-distinct-values', [\App\Http\Controllers\Api\RoleController::class, 'column_distinct_values']);
     Route::post('/datatable/roles/export', [\App\Http\Controllers\Api\RoleController::class, 'export']);
 
+    Route::get('/datatable/roles/get-permissions', [\App\Http\Controllers\Api\RoleController::class, 'getPermissions']);
+    Route::get('/datatable/roles/{role}/permissions', [\App\Http\Controllers\Api\RoleController::class, 'getRolePermissions']);
+    Route::post('/datatable/roles/add', [\App\Http\Controllers\Api\RoleController::class, 'add']);
+    Route::put('/datatable/roles/update', [\App\Http\Controllers\Api\RoleController::class, 'update']);
+    Route::delete('/datatable/roles/delete', [\App\Http\Controllers\Api\RoleController::class, 'delete']);
+
     Route::post('/datatable/permissions', [\App\Http\Controllers\Api\PermissionController::class, 'dataset']);
     Route::post('/datatable/permissions/column-distinct-values', [\App\Http\Controllers\Api\PermissionController::class, 'column_distinct_values']);
     Route::post('/datatable/permissions/export', [\App\Http\Controllers\Api\PermissionController::class, 'export']);

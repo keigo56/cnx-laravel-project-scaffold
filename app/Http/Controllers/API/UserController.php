@@ -49,6 +49,10 @@ class UserController extends Controller
     public function dataset(Request $request)
     {
         try {
+
+            activity()
+                ->log('User viewed users datatable');
+
             $datatable =
                 $this->datatable
                     ->filter($request->input('filters'))
@@ -100,6 +104,9 @@ class UserController extends Controller
     public function export(Request $request)
     {
         try {
+
+            activity()
+                ->log('User exported users.csv');
 
             $this->datatable
                 ->filter($request->input('filters'))

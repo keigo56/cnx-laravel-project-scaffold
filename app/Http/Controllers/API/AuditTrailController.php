@@ -121,6 +121,9 @@ class AuditTrailController extends Controller
     {
         try {
 
+            activity()
+                ->log('User exported logs.csv');
+
             $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))

@@ -25,7 +25,7 @@ trait WithExport
         $writer = SimpleExcelWriter::streamDownload($this->exportName . '.csv');
         $headers = collect($this->columns->toArray())->pluck('key')->toArray();
         $writer->addHeader($headers);
-        
+
         $this->queryBuilder->chunk(200, function($rows) use ($writer){
 
             $rows = $rows->toArray();

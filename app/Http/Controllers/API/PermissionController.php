@@ -42,6 +42,10 @@ class PermissionController extends Controller
     public function dataset(Request $request)
     {
         try {
+
+            activity()
+                ->log('User viewed permissions datatable');
+
             $datatable =
                 $this->datatable
                     ->filter($request->input('filters'))
@@ -94,11 +98,14 @@ class PermissionController extends Controller
     {
         try {
 
+            activity()
+                ->log('User exported permissions.csv');
+
             $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))
                 ->sortBy($request->input('sort_by'), $request->input('sort_direction'))
-                ->exportName('users')
+                ->exportName('permissions')
                 ->export();
 
         }catch (Exception $exception){
