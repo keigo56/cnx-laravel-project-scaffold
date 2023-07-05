@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Modules\Datatables\Column;
 use App\Modules\Datatables\DataTable;
+use App\Rules\SQLInputValidation;
 use Exception;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
@@ -44,8 +45,6 @@ class RoleController extends Controller
     {
         try {
 
-            activity()
-                ->log('User viewed roles datatable');
 
             $datatable =
                 $this->datatable
@@ -163,7 +162,7 @@ class RoleController extends Controller
 
     public function add(Request $request){
         $request->validate([
-            'name' => ['required', 'min:3', 'unique:roles,name'],
+            'name' => ['required', 'min:3', 'unique:roles,name', new SQLInputValidation()],
             'permissions' => ['required', 'array'],
             'permissions.*' => ['required', 'exists:permissions,id']
         ]);
@@ -200,7 +199,7 @@ class RoleController extends Controller
     public function update(Request $request){
         $request->validate([
             'id' => ['required', 'exists:roles,id'],
-            'name' => ['required', 'min:3', 'unique:roles,name,' . $request->input('id')],
+            'name' => ['required', 'min:3', 'unique:roles,name,' . $request->input('id'), new SQLInputValidation()],
             'permissions' => ['required', 'array'],
             'permissions.*' => ['required', 'exists:permissions,id']
         ]);

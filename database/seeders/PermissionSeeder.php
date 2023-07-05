@@ -26,5 +26,8 @@ class PermissionSeeder extends Seeder
         Permission::create(['name' => 'import_roles']);
         Permission::create(['name' => 'export_roles']);
         Permission::create(['name' => 'view_permissions']);
+        Permission::create(['name' => 'export_permissions']);
+        Permission::create(['name' => 'view_logs']);
+        Permission::create(['name' => 'export_logs']);
     }
 }

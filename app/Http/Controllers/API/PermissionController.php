@@ -43,9 +43,6 @@ class PermissionController extends Controller
     {
         try {
 
-            activity()
-                ->log('User viewed permissions datatable');
-
             $datatable =
                 $this->datatable
                     ->filter($request->input('filters'))
