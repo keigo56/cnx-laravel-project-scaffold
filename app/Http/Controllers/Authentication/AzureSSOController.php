@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\AzureSSOService;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AzureSSOController extends Controller
@@ -94,13 +95,13 @@ class AzureSSOController extends Controller
         }
     }
 
-    public function sso_logout()
+    public function sso_logout(Request $request)
     {
-        /*
-         * Get the authenticated user and delete all the tokens associated with it
-         * */
-        $user = auth()->user();
-        $user->tokens()->delete();
+
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return response()->json([
             'success' => true,
