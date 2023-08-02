@@ -365,7 +365,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'user' => $user,
+                'user' => $user->only('name', 'email', 'workday_id', 'position'),
                 'permissions' => $permissions
             ]);
 
