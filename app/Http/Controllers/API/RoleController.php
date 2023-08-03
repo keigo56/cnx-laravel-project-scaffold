@@ -8,6 +8,7 @@ use App\Modules\Datatables\DataTable;
 use App\Rules\SQLInputValidation;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -101,12 +102,16 @@ class RoleController extends Controller
             activity()
                 ->log('User exported roles.csv');
 
-            $this->datatable
+            $filePath = $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))
                 ->sortBy($request->input('sort_by'), $request->input('sort_direction'))
                 ->exportName('roles')
                 ->export();
+
+            return response()
+                ->download(Storage::path($filePath))
+                ->deleteFileAfterSend();
 
         }catch (Exception $exception){
             return response()->json([

@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
@@ -132,12 +133,16 @@ class UserController extends Controller
             activity()
                 ->log('User exported users.csv');
 
-            $this->datatable
+            $filePath = $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))
                 ->sortBy($request->input('sort_by'), $request->input('sort_direction'))
                 ->exportName('users')
                 ->export();
+
+            return response()
+                ->download(Storage::path($filePath))
+                ->deleteFileAfterSend();
 
         } catch (Exception $exception) {
             return response()->json([

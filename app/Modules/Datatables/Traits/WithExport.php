@@ -3,11 +3,9 @@
 namespace App\Modules\Datatables\Traits;
 
 use Exception;
-use Illuminate\Database\Query\Builder;
-use Illuminate\Support\Facades\Log;
-use OpenSpout\Common\Entity\Row;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Spatie\SimpleExcel\SimpleExcelWriter;
-use stdClass;
 
 trait WithExport
 {
@@ -18,30 +16,21 @@ trait WithExport
     /**
      * @throws Exception
      */
-    public function export(): void
+    public function export(): string
     {
         $this->validateFields();
 
-        $writer = SimpleExcelWriter::streamDownload($this->exportName . '.csv');
-        $headers = collect($this->columns->toArray())->pluck('key')->toArray();
-        $writer->addHeader($headers);
+        $fileName = Str::random(20) . '.csv';
+        $filePath = "/exports/$fileName";
+        $temporaryCSVFile = Storage::put($filePath, '');
 
-        $this->queryBuilder->chunk(200, function($rows) use ($writer){
+        if(!$temporaryCSVFile){
+            throw new Exception('Cannot create temporary CSV File');
+        }
 
-            $rows = $rows->toArray();
-            $rows = json_decode(json_encode($rows), true);
+        $this->writeDataToCSV($filePath);
 
-            $this->rows = $rows;
-
-            if($this->willMapRow){
-                $this->mapRows();
-            }
-
-            $rows = $this->rows;
-            $writer->addRows($rows);
-        });
-
-        $writer->close();
+        return $filePath;
     }
 
     public function maxExportRows(int $maxRows): self
@@ -85,5 +74,29 @@ trait WithExport
         if($this->exportName === ''){
             throw new Exception("Please specify the export name");
         }
+    }
+
+    private function writeDataToCSV($filePath): void
+    {
+        $writer = SimpleExcelWriter::create(Storage::path($filePath), 'csv');
+        $headers = collect($this->columns->toArray())->pluck('key')->toArray();
+        $writer->addHeader($headers);
+
+        $this->queryBuilder->chunk(200, function($rows) use ($writer){
+
+            $rows = $rows->toArray();
+            $rows = json_decode(json_encode($rows), true);
+
+            $this->rows = $rows;
+
+            if($this->willMapRow){
+                $this->mapRows();
+            }
+
+            $rows = $this->rows;
+            $writer->addRows($rows);
+        });
+
+        $writer->close();
     }
 }

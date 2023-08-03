@@ -11,6 +11,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Permission\Models\Permission;
 
@@ -124,12 +125,16 @@ class AuditTrailController extends Controller
             activity()
                 ->log('User exported logs.csv');
 
-            $this->datatable
+            $filePath = $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))
                 ->sortBy($request->input('sort_by'), $request->input('sort_direction'))
                 ->exportName('logs')
                 ->export();
+
+            return response()
+                ->download(Storage::path($filePath))
+                ->deleteFileAfterSend();
 
         }catch (Exception $exception){
             return response()->json([

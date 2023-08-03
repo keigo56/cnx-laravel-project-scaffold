@@ -7,6 +7,7 @@ use App\Modules\Datatables\Column;
 use App\Modules\Datatables\DataTable;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Permission;
 
 class PermissionController extends Controller
@@ -98,12 +99,16 @@ class PermissionController extends Controller
             activity()
                 ->log('User exported permissions.csv');
 
-            $this->datatable
+            $filePath = $this->datatable
                 ->filter($request->input('filters'))
                 ->search($request->input('search'))
                 ->sortBy($request->input('sort_by'), $request->input('sort_direction'))
                 ->exportName('permissions')
                 ->export();
+
+            return response()
+                ->download(Storage::path($filePath))
+                ->deleteFileAfterSend();
 
         }catch (Exception $exception){
             return response()->json([
