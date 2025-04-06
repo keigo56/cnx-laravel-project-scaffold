@@ -32,6 +32,7 @@ return [
     ],
     'azure' => [
         'app_id' => env('OAUTH_APP_ID'),
+        'tenant_id' => env('OAUTH_TENANT_ID'),
         'secret' => env('OAUTH_APP_SECRET'),
         'redirect_uri' => env('OAUTH_REDIRECT_URI'),
         'authorize_endpoint' => env('OAUTH_AUTHORIZE_ENDPOINT'),
