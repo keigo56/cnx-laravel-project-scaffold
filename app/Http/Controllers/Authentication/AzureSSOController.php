@@ -14,13 +14,14 @@ class AzureSSOController extends Controller
 {
     public function app_sso_login()
     {
-        $azureService = new AzureSSOService();
+        $azureService = new AzureSSOService;
 
         $authorizationURLAndClientState = $azureService->getAuthorizationURLAndClientState();
         $authorizationURL = $authorizationURLAndClientState['url'];
         $state = $authorizationURLAndClientState['state'];
 
         session(['oauthState' => $state]);
+
         return redirect()->away($authorizationURL);
     }
 
@@ -29,7 +30,7 @@ class AzureSSOController extends Controller
 
         try {
 
-            $azureService = new AzureSSOService();
+            $azureService = new AzureSSOService;
             $expectedState = session('oauthState');
             $request->session()->forget('oauthState');
             $providedState = $request->query('state');
@@ -37,9 +38,7 @@ class AzureSSOController extends Controller
             $azureService->isValidOAuthState($expectedState, $providedState);
             $authorizationCode = $request->query('code');
             $azureService->isValidAuthorizationCode($authorizationCode);
-            $accessToken = $azureService->getAccessToken($authorizationCode);
-            $authenticatedUser = $azureService->getAzureSSOUser($accessToken);
-
+            $authenticatedUser = $azureService->getAzureSSOUser($authorizationCode);
 
             /*
              * Checks on the database if the user email exists on "users" table
@@ -48,14 +47,13 @@ class AzureSSOController extends Controller
                 ->where('email', '=', $authenticatedUser->getMail())
                 ->exists();
 
-
             /*
              * If the user does not exist in the database,
              * create a new user record with the authenticated user's email and display name.
              * Otherwise, retrieve the existing user record from the database.
              * */
 
-            $user = !$userExists ?
+            $user = ! $userExists ?
                 User::query()
                     ->create([
                         'email' => $authenticatedUser->getMail(),
@@ -65,7 +63,6 @@ class AzureSSOController extends Controller
                 User::query()
                     ->where('email', '=', $authenticatedUser->getMail())
                     ->first();
-
 
             /*
              * Delete all active tokens of the user
@@ -84,13 +81,12 @@ class AzureSSOController extends Controller
              * Forward the access token to our frontend URL
              * */
 
-            $forwardURL = config('services.azure.frontend_uri') . "/auth/validate?token={$access_token}";
+            $forwardURL = config('services.azure.frontend_uri')."/auth/validate?token={$access_token}";
 
             return redirect()->away($forwardURL);
-
-        }catch (Exception $exception){
+        } catch (Exception $exception) {
             return response()->json([
-                'error' => $exception->getMessage()
+                'error' => $exception->getMessage(),
             ], 500);
         }
     }
@@ -105,7 +101,7 @@ class AzureSSOController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'User logout successfully'
+            'message' => 'User logout successfully',
         ]);
     }
 }

@@ -3,13 +3,11 @@
 namespace App\Services;
 
 use Exception;
-use GuzzleHttp\Exception\GuzzleException;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\GenericProvider;
 use League\OAuth2\Client\Token\AccessToken;
-use Microsoft\Graph\Exception\GraphException;
-use Microsoft\Graph\Graph;
-use Microsoft\Graph\Model\User;
+use Microsoft\Graph\GraphServiceClient;
+use Microsoft\Kiota\Authentication\Oauth\AuthorizationCodeContext;
 
 class AzureSSOService
 {
@@ -18,13 +16,14 @@ class AzureSSOService
      * */
     private function getOAuthClient(): GenericProvider
     {
-       return new GenericProvider([
-            'clientId'                => config('services.azure.app_id'),
-            'clientSecret'            => config('services.azure.secret'),
-            'redirectUri'             => config('services.azure.redirect_uri'),
-            'urlAuthorize'            => config('services.azure.authorize_endpoint'),
-            'urlAccessToken'          => config('services.azure.token_endpoint'),
-            'scopes'                  => config('services.azure.scopes'),
+        return new GenericProvider([
+            'tenantId' => config('services.azure.tenant_id'),
+            'clientId' => config('services.azure.app_id'),
+            'clientSecret' => config('services.azure.secret'),
+            'redirectUri' => config('services.azure.redirect_uri'),
+            'urlAuthorize' => config('services.azure.authorize_endpoint'),
+            'urlAccessToken' => config('services.azure.token_endpoint'),
+            'scopes' => config('services.azure.scopes'),
             'urlResourceOwnerDetails' => '',
         ]);
     }
@@ -46,7 +45,7 @@ class AzureSSOService
          * */
         return [
             'url' => $client->getAuthorizationUrl(['prompt' => 'consent']),
-            'state' => $client->getState()
+            'state' => $client->getState(),
         ];
     }
 
@@ -57,13 +56,13 @@ class AzureSSOService
     /**
      * @throws Exception
      */
-    public function isValidOAuthState(string|null $expectedState, string|null $providedState): bool
+    public function isValidOAuthState(?string $expectedState, ?string $providedState): bool
     {
-        if (!isset($expectedState)) {
+        if (! isset($expectedState)) {
             throw new Exception('Invalid OAuth State');
         }
 
-        if (!isset($providedState)) {
+        if (! isset($providedState)) {
             throw new Exception('Invalid OAuth State');
         }
 
@@ -82,7 +81,7 @@ class AzureSSOService
      */
     public function isValidAuthorizationCode(string $authorizationCode): bool
     {
-        if (!isset($authorizationCode)) {
+        if (! isset($authorizationCode)) {
             throw new Exception('Invalid Authorization Code');
         }
 
@@ -104,35 +103,40 @@ class AzureSSOService
 
         try {
             return $client->getAccessToken('authorization_code', [
-                'code' => $authorizationCode
+                'code' => $authorizationCode,
             ]);
-        }catch (IdentityProviderException $e) {
+        } catch (IdentityProviderException $e) {
             throw new Exception('Cannot get access token for OAuth Client');
         }
     }
 
-    /*
-    * Returns the authenticated user from Azure AD
-    * */
     /**
+     * Returns the authenticated user from Azure AD
+     *
      * @throws Exception
      */
-    public function getAzureSSOUser(AccessToken $token)
+    public function getAzureSSOUser(string $authorizationCode)
     {
-        /*
-         * Initializes the Microsoft Graph API
-         * Sets the access token for the Graph API
-         * */
-        $graph = new Graph();
-        $graph->setAccessToken($token->getToken());
-
         try {
-            return $graph
-                ->createRequest('GET', '/me')
-                ->setReturnType(User::class)
-                ->execute();
-        } catch (GuzzleException|GraphException $e) {
-            throw new Exception('Cannot get Azure SSO User');
+
+            $tokenRequestContext = new AuthorizationCodeContext(
+                config('services.azure.tenant_id'),
+                config('services.azure.app_id'),
+                config('services.azure.secret'),
+                $authorizationCode,
+                config('services.azure.redirect_uri')
+            );
+
+            $scopes = array_map('trim', explode(',', config('services.azure.scopes')));
+            $graphServiceClient = new GraphServiceClient($tokenRequestContext, $scopes);
+
+            return $graphServiceClient
+                ->me()
+                ->get()
+                ->wait();
+
+        } catch (Exception $e) {
+            throw new Exception('Cannot get Azure SSO User: '.$e->getMessage());
         }
     }
 }
