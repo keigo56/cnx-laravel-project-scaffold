@@ -14,13 +14,6 @@ return [
     |
     */
 
-    'mailgun' => [
-        'domain' => env('MAILGUN_DOMAIN'),
-        'secret' => env('MAILGUN_SECRET'),
-        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
-        'scheme' => 'https',
-    ],
-
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
@@ -30,6 +23,18 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
+
+    'slack' => [
+        'notifications' => [
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+        ],
+    ],
+    
     'azure' => [
         'app_id' => env('OAUTH_APP_ID'),
         'tenant_id' => env('OAUTH_TENANT_ID'),
@@ -39,5 +44,6 @@ return [
         'token_endpoint' => env('OAUTH_TOKEN_ENDPOINT'),
         'scopes' => env('OAUTH_SCOPES'),
         'frontend_uri' => env('FRONTEND_URL')
-    ]
+    ],
+
 ];
