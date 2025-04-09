@@ -9,8 +9,8 @@ use Spatie\SimpleExcel\SimpleExcelWriter;
 
 trait WithExport
 {
+    private int $maxRows = 100000;
 
-    private int $maxRows = 5000;
     private string $exportName = '';
 
     /**
@@ -20,11 +20,11 @@ trait WithExport
     {
         $this->validateFields();
 
-        $fileName = Str::random(20) . '.csv';
+        $fileName = Str::random(20).'.csv';
         $filePath = "/exports/$fileName";
         $temporaryCSVFile = Storage::put($filePath, '');
 
-        if(!$temporaryCSVFile){
+        if (! $temporaryCSVFile) {
             throw new Exception('Cannot create temporary CSV File');
         }
 
@@ -36,12 +36,14 @@ trait WithExport
     public function maxExportRows(int $maxRows): self
     {
         $this->maxRows = $maxRows;
+
         return $this;
     }
 
     public function exportName(string $exportName): self
     {
         $this->exportName = $exportName;
+
         return $this;
     }
 
@@ -61,7 +63,7 @@ trait WithExport
     {
         $rowCount = $this->queryBuilder->count();
 
-        if($rowCount > $this->maxRows){
+        if ($rowCount > $this->maxRows) {
             throw new Exception("The number of rows to be exported is excessive. It is recommended that each export should not exceed $this->maxRows rows.");
         }
     }
@@ -71,8 +73,8 @@ trait WithExport
      */
     private function validateExportName(): void
     {
-        if($this->exportName === ''){
-            throw new Exception("Please specify the export name");
+        if ($this->exportName === '') {
+            throw new Exception('Please specify the export name');
         }
     }
 
@@ -82,14 +84,14 @@ trait WithExport
         $headers = collect($this->columns->toArray())->pluck('key')->toArray();
         $writer->addHeader($headers);
 
-        $this->queryBuilder->chunk(200, function($rows) use ($writer){
+        $this->queryBuilder->chunk(200, function ($rows) use ($writer) {
 
             $rows = $rows->toArray();
             $rows = json_decode(json_encode($rows), true);
 
             $this->rows = $rows;
 
-            if($this->willMapRow){
+            if ($this->willMapRow) {
                 $this->mapRows();
             }
 

@@ -7,8 +7,8 @@ use Exception;
 
 trait WithMapRow
 {
-
     protected bool $willMapRow = false;
+
     protected mixed $callback;
 
     /**
@@ -16,7 +16,7 @@ trait WithMapRow
      */
     public function mapRow($callback): self
     {
-        if(!$callback){
+        if (! $callback) {
             throw new Exception('Please specify the callback function for mapRow');
         }
 
@@ -30,27 +30,26 @@ trait WithMapRow
     {
         $formattedRows = [];
 
-        $rows = $this->rows->toArray();
+        $rows = is_array($this->rows) ? $this->rows : $this->rows->toArray();
 
-        if(array_key_exists('data', $rows)){
+        if (array_key_exists('data', $rows)) {
             $rows = $rows['data'];
         }
 
-        foreach ($rows as $row){
+        foreach ($rows as $row) {
             $rowObj = new Row();
-            $rowObj->setRowValue((array)$row);
+            $rowObj->setRowValue((array) $row);
             call_user_func($this->callback, $rowObj);
             $formattedRows[] = $rowObj->getRow();
         }
 
-        $this->rows = $this->rows->toArray();
+        $this->rows = is_array($this->rows) ? $this->rows : $this->rows->toArray();
 
-        if(array_key_exists('data', $this->rows)){
+        if (array_key_exists('data', $this->rows)) {
             $this->rows['data'] = $formattedRows;
-        }else{
+        } else {
             $this->rows = $formattedRows;
         }
 
     }
-
 }
