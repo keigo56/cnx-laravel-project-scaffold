@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Employee;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class EmployeeSeeder extends Seeder
@@ -21,7 +20,7 @@ class EmployeeSeeder extends Seeder
                 'LastName' => 'Fujita',
                 'MiddleName' => 'Templo',
                 'EmailAddress' => 'keigovictor.fujita@concentrix.com',
-                'Position' => 'Analyst, Delivery Excellence',
+                'Position' => 'Software Engineer II (TCF)',
             ]);
 
         Employee::query()
@@ -32,18 +31,8 @@ class EmployeeSeeder extends Seeder
                 'LastName' => 'Vivo',
                 'MiddleName' => 'Teruel',
                 'EmailAddress' => 'joseaugusto.vivo@concentrix.com',
-                'Position' => 'Analyst, Delivery Excellence',
+                'Position' => 'Software Engineer II (TCF)',
             ]);
 
-        Employee::query()
-            ->create([
-                'workday_id' => '574338',
-                'name' => 'Angelo Martinez',
-                'FirstName' => 'Angelo',
-                'LastName' => 'Martinez',
-                'MiddleName' => 'Briones',
-                'EmailAddress' => 'angelo.martinez@concentrix.com',
-                'Position' => 'Sr. Analyst, Delivery Excellence',
-            ]);
     }
 }
