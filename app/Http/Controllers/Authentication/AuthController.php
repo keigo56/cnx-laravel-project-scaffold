@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Authentication;
 
 use App\Auth\AuthManager;
 use App\Auth\Handlers\BasicAuthHandler;
-use App\Auth\Services\BasicAuthService;
 use App\Auth\Services\OTPService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -172,6 +171,35 @@ class AuthController extends Controller
             return response()->json([
                 'error' => true,
                 'message' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function logout(string $role, Request $request)
+    {
+        try {
+
+            $user = User::findOrFail(Auth::user()->id);
+
+            $roleName = $this->authManager->getRoleName($role);
+            activity()->log("User logged out as {$roleName}");
+
+            $user->tokens()->delete();
+
+            Auth::guard('web')->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return response()->json([
+                'success' => true,
+                'message' => $roleName.' logout successful',
+            ]);
+
+        } catch (Exception $exception) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Logout failed. Please try again later.',
             ], 500);
         }
     }
