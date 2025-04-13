@@ -6,7 +6,6 @@ use App\Auth\AuthManager;
 use App\Auth\Exceptions\UserMissingRoleException;
 use App\Auth\Handlers\SSOAuthHandler;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
