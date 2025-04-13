@@ -9,7 +9,7 @@ class AuthManager
             'auth_flows' => [
                 'sso' => [
                     'redirect_path' => '/admin/auth/validate',
-                    'should_assign_default_role' => true,
+                    'should_assign_default_role' => false,
                 ],
             ],
             'role_name' => 'Admin',
