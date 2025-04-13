@@ -19,17 +19,17 @@ Route::middleware('guest')
     ->group(function () {
 
         // SSO AUTHENTICATION
-        Route::get('{role}/auth/sso/redirect', [AuthSSOController::class, 'sso_redirect'])->name('auth.sso.redirect');
+        Route::get('auth/{role}/sso/redirect', [AuthSSOController::class, 'sso_redirect'])->name('auth.sso.redirect');
         Route::get('sso/callback', [AuthSSOController::class, 'sso_callback'])->name('auth.sso.callback');
 
         // NON SSO AUTHENTICATION
-        Route::post('{role}/auth/login', [AuthController::class, 'login']);
-        Route::post('{role}/auth/login/otp/refresh', [AuthController::class, 'refresh_otp']);
-        Route::post('{role}/auth/login/otp/verify', [AuthController::class, 'verify_otp']);
+        Route::post('auth/{role}/login', [AuthController::class, 'login']);
+        Route::post('auth/{role}/login/otp/refresh', [AuthController::class, 'refresh_otp']);
+        Route::post('auth/{role}/login/otp/verify', [AuthController::class, 'verify_otp']);
     });
 
 Route::middleware('auth:sanctum')
     ->group(function () {
-        Route::post('{role}/auth/token/validate', [AuthController::class, 'validate_token'])->name('auth.token.validate');
-        Route::delete('{role}/auth/logout', [AuthController::class, 'auth_logout'])->name('auth.logout');
+        Route::post('auth/{role}/token/validate', [AuthController::class, 'validate_token'])->name('auth.token.validate');
+        Route::delete('auth/{role}/logout', [AuthController::class, 'logout'])->name('auth.logout');
     });
