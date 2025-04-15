@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Authentication\AuthController;
-use App\Http\Controllers\Authentication\AuthSSOController;
+use App\Auth\Handlers\BasicAuthHandler;
+use App\Http\Controllers\Authentication\AdminAuthSSOController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,17 +19,20 @@ Route::middleware('guest')
     ->group(function () {
 
         // SSO AUTHENTICATION
-        Route::get('auth/{role}/sso/redirect', [AuthSSOController::class, 'sso_redirect'])->name('auth.sso.redirect');
-        Route::get('sso/callback', [AuthSSOController::class, 'sso_callback'])->name('auth.sso.callback');
+        Route::get('admin/auth/sso/redirect', [AdminAuthSSOController::class, 'redirect'])->name('admin.auth.sso.redirect');
+        Route::get('sso/callback', [AdminAuthSSOController::class, 'callback'])->name('admin.auth.sso.callback');
 
-        // NON SSO AUTHENTICATION
-        Route::post('auth/{role}/login', [AuthController::class, 'login']);
-        Route::post('auth/{role}/login/otp/refresh', [AuthController::class, 'refresh_otp']);
-        Route::post('auth/{role}/login/otp/verify', [AuthController::class, 'verify_otp']);
+        // BASIC AUTHENTICATION
+        Route::post('user/auth/login', [BasicAuthHandler::class, 'login'])->name('user.auth.login');
+        Route::post('user/auth/login/otp/refresh', [BasicAuthHandler::class, 'refreshOtp'])->name('user.auth.login.otp.refresh');
+        Route::post('user/auth/login/otp/verify', [BasicAuthHandler::class, 'verifyOtp'])->name('user.auth.login.otp.verify');
     });
 
 Route::middleware('auth:sanctum')
     ->group(function () {
-        Route::post('auth/{role}/token/validate', [AuthController::class, 'validate_token'])->name('auth.token.validate');
-        Route::delete('auth/{role}/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::post('admin/auth/token/validate', [AdminAuthSSOController::class, 'validateToken'])->name('admin.auth.token.validate');
+        Route::post('user/auth/token/validate', [BasicAuthHandler::class, 'validateToken'])->name('user.auth.token.validate');
+
+        Route::delete('admin/auth/logout', [AdminAuthSSOController::class, 'logout'])->name('admin.auth.logout');
+        Route::delete('user/auth/logout', [BasicAuthHandler::class, 'logout'])->name('user.auth.logout');
     });

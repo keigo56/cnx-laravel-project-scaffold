@@ -2,7 +2,6 @@
 
 namespace App\Auth\Handlers;
 
-use App\Auth\AuthManager;
 use App\Auth\Exceptions\UserMissingRoleException;
 use App\Auth\Services\AzureSSOService;
 use App\Models\User;
@@ -26,7 +25,7 @@ class SSOAuthHandler
 
     protected string $expectedState;
 
-    protected AuthManager $authManager;
+    protected bool $shouldAssignDefaultRole = false;
 
     /*
      * The AzureSSOService class is responsible for handling the Azure SSO authentication flow
@@ -34,10 +33,9 @@ class SSOAuthHandler
      * */
     protected AzureSSOService $ssoService;
 
-    public function __construct(AuthManager $authManager, AzureSSOService $ssoService)
+    public function __construct(AzureSSOService $ssoService)
     {
         $this->ssoService = $ssoService;
-        $this->authManager = $authManager;
     }
 
     public function withRole(string $role): self
@@ -68,17 +66,21 @@ class SSOAuthHandler
         return $this;
     }
 
-    private function generateState(): void
+    public function withDefaultRoleAssignment(): self
     {
-        $this->state = Str::random(40).'|'.$this->role;
+        $this->shouldAssignDefaultRole = true;
+
+        return $this;
     }
+
+    // PUBLIC FLOWS
 
     public function getState(): string
     {
         return $this->state;
     }
 
-    public function getAuthrorizationURL(): string
+    public function getAuthorizationUrl(): string
     {
         $this->generateState();
 
@@ -90,23 +92,23 @@ class SSOAuthHandler
     /**
      * @throws Exception|UserMissingRoleException
      */
-    public function authenticate(): array
+    public function authenticate(): string
     {
         // Parse the state to get the role
         $this->role = $this->extractRoleFromState($this->returnedState);
 
-        $azureUser = $this->getAzureUser();
-        $user = $this->findOrCreateUser($azureUser);
+        $user = $this->findOrCreateUser($this->getAzureUser());
 
-        $this->validateIfUserHasRole($user);
+        $this->ensureUserHasRole($user);
 
-        $accessToken = $this->createAccessToken($user->email);
-        $redirectPath = $this->buildRedirectPath();
+        return $this->createAccessToken($user);
+    }
 
-        return [
-            'access_token' => $accessToken,
-            'redirect_path' => $redirectPath,
-        ];
+    // INTERNAL FUNCTIONS
+
+    private function generateState(): void
+    {
+        $this->state = Str::random(40).'|'.$this->role;
     }
 
     private function getAzureUser(): AzureUser
@@ -128,34 +130,29 @@ class SSOAuthHandler
              ['name' => $azureUser->getDisplayName()]
          );
 
-        if ($this->authManager->shouldAssignDefaultRole($this->role)) {
+        if ($this->shouldAssignDefaultRole) {
             $user->assignRole($this->role);
         }
 
         return $user;
     }
 
+    /**
+     * @throws Exception
+     */
     private function extractRoleFromState(string $state): string
     {
         try {
             return explode('|', $state)[1];
-        } catch (\Exception $e) {
-            throw new \Exception('Cannot extract role from state. Invalid state format.');
+        } catch (Exception $e) {
+            throw new Exception('Cannot extract role from state. Invalid state format.');
         }
-    }
-
-    private function buildRedirectPath(): string
-    {
-        $frontendBasePath = config('services.azure.frontend_uri');
-        $rolePath = $this->authManager->getSSORedirectPath($this->role);
-
-        return $frontendBasePath.$rolePath;
     }
 
     /**
      * @throws UserMissingRoleException
      */
-    private function validateIfUserHasRole(User $user): void
+    private function ensureUserHasRole(User $user): void
     {
 
         if ($user->hasRole('super_admin')) {
@@ -163,15 +160,12 @@ class SSOAuthHandler
         }
 
         if (! $user->hasRole($this->role)) {
-            $redirectPath = $this->buildRedirectPath();
-            throw new UserMissingRoleException($this->role, $redirectPath);
+            throw new UserMissingRoleException($this->role);
         }
     }
 
-    public function createAccessToken(string $email): string
+    public function createAccessToken(User $user): string
     {
-        $user = User::query()->where('email', $email)->firstOrFail();
-
         $user->tokens()->delete(); // Only one token per user
 
         return $user->createToken('access_token')->plainTextToken;

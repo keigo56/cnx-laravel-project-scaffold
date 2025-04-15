@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Authentication;
 
-use App\Auth\AuthManager;
 use App\Auth\Handlers\BasicAuthHandler;
-use App\Auth\Services\OTPService;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Exception;
@@ -13,16 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class AuthController extends Controller
+class UserBasicAuthController extends Controller
 {
-    /*
-     * The AuthManager class is responsible for handling the authentication process
-     *
-     * It is used to check if the role is configured for SSO authentication
-     * and to get the redirect path on the SPA frontend for the role after authentication
-     * */
-    protected AuthManager $authManager;
-
     /*
      * The BasicAuthService class is responsible for handling the Basic authentication process
      *
@@ -30,27 +20,14 @@ class AuthController extends Controller
      * */
     protected BasicAuthHandler $authHandler;
 
-    /*
-     * The OTPService class is responsible for handling the OTP process
-     *
-     * It is used to send the OTP to the user and verify the OTP
-     * */
-    protected OTPService $otpService;
-
-    public function __construct(AuthManager $authManager, BasicAuthHandler $authHandler)
+    public function __construct(BasicAuthHandler $authHandler)
     {
-        $this->authManager = $authManager;
         $this->authHandler = $authHandler;
+        $this->authHandler->withRole('user');
     }
 
-    public function login(string $role, Request $request)
+    public function login(Request $request)
     {
-        /*
-         * Check if the role is configured for Basic authentication
-         * If not, throw an exception
-         * */
-        $this->authManager->checkIfAuthFlowExistsForRole('basic', $role);
-
         $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -64,10 +41,12 @@ class AuthController extends Controller
             $result = $this
                 ->authHandler
                 ->withCredentials($email, $password)
-                ->withRole($role)
                 ->authenticate();
 
-            return response()->json($result);
+            return response()->json([
+                'success' => true,
+                ...$result,
+            ]);
 
         } catch (ValidationException $validationException) {
             throw $validationException;
@@ -79,7 +58,7 @@ class AuthController extends Controller
         }
     }
 
-    public function refresh_otp(Request $request)
+    public function refreshOtp(Request $request)
     {
         $request->validate([
             'email' => ['required', 'email'],
@@ -91,8 +70,10 @@ class AuthController extends Controller
             $email = $request->input('email');
             $login_authorization_id = $request->input('login_authorization_id');
 
-            $newUserOTP = $this->otpService->refreshOTP($email, $login_authorization_id);
-            $this->otpService->sendOTPToMail($newUserOTP->user_email, $newUserOTP->otp);
+            $this->authHandler
+                ->withEmail($email)
+                ->withLoginAuthorizationId($login_authorization_id)
+                ->refreshOTP();
 
             return response()->json([
                 'success' => true,
@@ -110,7 +91,7 @@ class AuthController extends Controller
         }
     }
 
-    public function verify_otp(string $role, Request $request)
+    public function verifyOtp(Request $request)
     {
 
         $request->validate([
@@ -122,18 +103,21 @@ class AuthController extends Controller
         try {
 
             $email = $request->input('email');
-            $login_authorization_id = $request->input('login_authorization_id');
-            $otp = $request->input('otp');
+            $loginAuthorizationID = $request->input('login_authorization_id');
+            $otpCode = $request->input('otp');
 
-            $this->otpService->verifyOTP($email, $login_authorization_id, $otp);
-
-            $result = $this
+            $accessToken = $this
                 ->authHandler
-                ->withEmail($email)
-                ->withRole($role)
-                ->provideLoginAccess();
+                ->withMFACredentials($email, $loginAuthorizationID, $otpCode)
+                ->verifyOtp()
+                ->finalizeAuthentication();
 
-            return response()->json($result);
+            return response()->json([
+                'success' => true,
+                'email' => $email,
+                'access_token' => $accessToken,
+                'message' => 'OTP provided is valid.',
+            ]);
 
         } catch (ValidationException $validationException) {
             throw $validationException;
@@ -145,7 +129,7 @@ class AuthController extends Controller
         }
     }
 
-    public function validate_token(string $role, Request $request)
+    public function validateToken(Request $request)
     {
         try {
 
@@ -159,8 +143,7 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
-            $roleName = $this->authManager->getRoleName($role);
-            activity()->log("User logged in as {$roleName}");
+            activity()->log('User logged in as user');
 
             return response()->json([
                 'success' => true,
@@ -175,14 +158,13 @@ class AuthController extends Controller
         }
     }
 
-    public function logout(string $role, Request $request)
+    public function logout(Request $request)
     {
         try {
 
             $user = User::findOrFail(Auth::user()->id);
 
-            $roleName = $this->authManager->getRoleName($role);
-            activity()->log("User logged out as {$roleName}");
+            activity()->log('User logged out as user');
 
             $user->tokens()->delete();
 
@@ -193,10 +175,10 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $roleName.' logout successful',
+                'message' => 'User logout successful',
             ]);
 
-        } catch (Exception $exception) {
+        } catch (Exception) {
             return response()->json([
                 'error' => true,
                 'message' => 'Logout failed. Please try again later.',

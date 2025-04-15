@@ -2,7 +2,6 @@
 
 namespace App\Auth\Handlers;
 
-use App\Auth\AuthManager;
 use App\Auth\Services\OTPService;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -16,19 +15,29 @@ class BasicAuthHandler
 
     protected string $role;
 
-    protected AuthManager $authManager;
+    protected string $loginAuthorizationId;
+
+    protected string $otpCode;
+
+    protected bool $isMfaEnabled = true;
 
     protected OTPService $otpService;
 
-    public function __construct(AuthManager $authManager, OTPService $otpService)
+    public function __construct(OTPService $otpService)
     {
-        $this->authManager = $authManager;
         $this->otpService = $otpService;
     }
 
     public function withEmail(string $email): self
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function withLoginAuthorizationId(string $loginAuthorizationId): self
+    {
+        $this->loginAuthorizationId = $loginAuthorizationId;
 
         return $this;
     }
@@ -41,9 +50,32 @@ class BasicAuthHandler
         return $this;
     }
 
+    public function withMFACredentials(string $email, string $loginAuthorizationId, string $otpCode): self
+    {
+        $this->email = $email;
+        $this->loginAuthorizationId = $loginAuthorizationId;
+        $this->otpCode = $otpCode;
+
+        return $this;
+    }
+
     public function withRole(string $role): self
     {
         $this->role = $role;
+
+        return $this;
+    }
+
+    public function withMfaEnabled(bool $isMfaEnabled): self
+    {
+        $this->isMfaEnabled = $isMfaEnabled;
+
+        return $this;
+    }
+
+    public function withOtpCode(bool $otpCode): self
+    {
+        $this->otpCode = $otpCode;
 
         return $this;
     }
@@ -54,45 +86,49 @@ class BasicAuthHandler
     public function authenticate(): array
     {
         $this->validateCredentials();
-        $this->validateIfUserHasRole();
+        $this->ensureUserHasRole();
 
         if (! $this->isMfaRequired()) {
-            return $this->provideLoginAccess();
+            return [
+                'mfa_required' => false,
+                'email' => $this->email,
+                'access_token' => $this->generateAccessToken(),
+                'message' => 'MFA is not required. Access token generated.',
+            ];
         }
 
-        return $this->handleMfaFlow();
+        return $this->initiateMfa();
     }
 
-    protected function isMfaRequired(): bool
+    public function refreshOtp(): void
     {
-        return $this->authManager->isMfaEnabledForRole($this->role);
+        $newUserOTP = $this->otpService->refreshOTP($this->email, $this->loginAuthorizationId);
+        $this->otpService->sendOTPToMail($newUserOTP);
     }
 
-    public function provideLoginAccess(): array
+    public function verifyOtp(): self
     {
-        $this->validateIfUserHasRole();
+        $this->otpService->verifyOTP(
+            $this->email,
+            $this->loginAuthorizationId,
+            $this->otpCode
+        );
 
-        $accessToken = $this->createAccessToken($this->email);
-
-        return [
-            'success' => true,
-            'email' => $this->email,
-            'access_token' => $accessToken,
-            'message' => 'Login successful',
-        ];
+        return $this;
     }
 
-    protected function handleMfaFlow(): array
+    public function finalizeAuthentication(): string
     {
-        $userOtp = $this->otpService->generateOTP($this->email);
+        $this->ensureUserHasRole();
 
-        return [
-            'success' => true,
-            'mfa_enabled' => true,
-            'email' => $this->email,
-            'login_authorization_code' => $userOtp->login_authorization_id,
-            'message' => 'MFA required. OTP sent.',
-        ];
+        return $this->generateAccessToken();
+    }
+
+    private function isMfaRequired(): bool
+    {
+        $mfaGloballyEnabled = config('auth.mfa_enabled');
+
+        return $mfaGloballyEnabled && $this->isMfaEnabled;
     }
 
     /**
@@ -109,10 +145,22 @@ class BasicAuthHandler
         }
     }
 
+    private function initiateMfa(): array
+    {
+        $userOtp = $this->otpService->generateOTP($this->email);
+
+        return [
+            'mfa_required' => true,
+            'email' => $userOtp->email,
+            'login_authorization_code' => $userOtp->login_authorization_id,
+            'message' => 'MFA required. OTP sent to email.',
+        ];
+    }
+
     /**
      * @throws ValidationException
      */
-    private function validateIfUserHasRole(): void
+    private function ensureUserHasRole(): void
     {
 
         $user = User::where('email', $this->email)->first();
@@ -128,9 +176,9 @@ class BasicAuthHandler
         }
     }
 
-    public function createAccessToken(string $email): string
+    public function generateAccessToken(): string
     {
-        $user = User::query()->where('email', $email)->firstOrFail();
+        $user = User::query()->where('email', $this->email)->firstOrFail();
 
         $user->tokens()->delete(); // Only one token per user
 

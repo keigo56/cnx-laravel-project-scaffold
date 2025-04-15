@@ -57,10 +57,10 @@ class OTPService
         return $this->generateOTP($email, $login_authorization_code);
     }
 
-    public function sendOTPToMail(string $email, string $otp): void
+    public function sendOTPToMail(UserOTP $userOtp): void
     {
-        Mail::to($email)
-            ->send(new OTPMail($otp));
+        Mail::to($userOtp->email)
+            ->send(new OTPMail($userOtp->otp));
     }
 
     /**

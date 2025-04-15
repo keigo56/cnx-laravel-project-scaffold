@@ -34,7 +34,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    
+
     'azure' => [
         'app_id' => env('OAUTH_APP_ID'),
         'tenant_id' => env('OAUTH_TENANT_ID'),
@@ -43,7 +43,7 @@ return [
         'authorize_endpoint' => env('OAUTH_AUTHORIZE_ENDPOINT'),
         'token_endpoint' => env('OAUTH_TOKEN_ENDPOINT'),
         'scopes' => env('OAUTH_SCOPES'),
-        'frontend_uri' => env('FRONTEND_URL')
+        'frontend_url' => env('FRONTEND_URL'),
     ],
 
 ];
