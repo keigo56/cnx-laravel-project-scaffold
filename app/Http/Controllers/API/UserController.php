@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Modules\Datatables\Column;
 use App\Modules\Datatables\DataTable;
-use App\Modules\Datatables\Row;
 use App\Rules\SQLInputValidation;
 use Exception;
 use Illuminate\Http\Request;
@@ -15,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -39,40 +37,35 @@ class UserController extends Controller
                     ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
                     ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                     ->where('model_has_roles.model_type', '=', 'App\Models\User')
+                    ->whereNotIn('roles.name', ['passenger', 'driver'])
             )
             ->columns([
                 Column::make()
                     ->key('user_id')
                     ->label('ID')
                     ->numeric()
-                    ->visible(false)
-                ,
+                    ->visible(false),
                 Column::make()
                     ->key('workday_id')
                     ->label('Workday ID')
-                    ->string()
-                ,
+                    ->string(),
                 Column::make()
                     ->key('email')
                     ->label('Email')
-                    ->string()
-                ,
+                    ->string(),
                 Column::make()
                     ->key('name')
                     ->label('Name')
-                    ->string()
-                ,
+                    ->string(),
                 Column::make()
                     ->key('role_name')
                     ->label('Role Name')
-                    ->string()
-                ,
+                    ->string(),
                 Column::make()
                     ->key('role_id')
                     ->label('role_id')
                     ->string()
-                    ->visible(false)
-                ,
+                    ->visible(false),
             ]);
     }
 
@@ -88,7 +81,7 @@ class UserController extends Controller
                     ->paginate();
 
             return response()->json([
-                'datatable' => $datatable
+                'datatable' => $datatable,
             ]);
 
         } catch (Exception $exception) {
@@ -102,7 +95,7 @@ class UserController extends Controller
     public function column_distinct_values(Request $request)
     {
         $request->validate([
-            'column' => ['required', 'string']
+            'column' => ['required', 'string'],
         ]);
 
         try {
@@ -115,7 +108,7 @@ class UserController extends Controller
 
             return response()->json([
                 'column' => $request->input('column'),
-                'distinct_values' => $distinct_values
+                'distinct_values' => $distinct_values,
             ]);
 
         } catch (Exception $exception) {
@@ -152,32 +145,32 @@ class UserController extends Controller
         }
     }
 
-
     public function search_employee(Request $request)
     {
         try {
 
-            $employeeSearch = $request->input('query');
+            $employeeSearch = trim($request->input('query'));
 
             $employees = Employee::query()
                 ->select('employees.name', DB::raw('employees.EmailAddress as email'))
-                ->where('employees.EmailAddress', 'LIKE', "%$employeeSearch%")
-                ->orWhere('employees.name', 'LIKE', "%$employeeSearch%")
-                ->orWhere('employees.workday_id', 'LIKE', "%$employeeSearch%")
-                ->orderBy('name')
+                ->where('employees.EmployeeStatus', 'Active')
+                ->whereNotNull('employees.EmailAddress')
+                ->where('employees.EmailAddress', '!=', '')
+                ->when(! empty($employeeSearch), function ($query) use ($employeeSearch) {
+                    $query->where(function ($subQuery) use ($employeeSearch) {
+                        $subQuery->where('employees.EmailAddress', 'LIKE', "%{$employeeSearch}%")
+                            ->orWhere('employees.name', 'LIKE', "%{$employeeSearch}%")
+                            ->orWhere('employees.workday_id', 'LIKE', "%{$employeeSearch}%");
+                    });
+                })
+                ->orderBy('employees.name')
                 ->limit(15)
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'value' => $item->email,
-                        'label' => $item->email
-                    ];
-                });
+                ->pluck('email')
+                ->map(fn ($email) => ['value' => $email, 'label' => $email]);
 
             return response()->json([
-                'result' => $employees
+                'result' => $employees,
             ]);
-
         } catch (Exception $exception) {
             return response()->json([
                 'error' => true,
@@ -196,7 +189,7 @@ class UserController extends Controller
                 ->get();
 
             return response()->json([
-                'roles' => $roles
+                'roles' => $roles,
             ]);
 
         } catch (Exception $exception) {
@@ -207,12 +200,11 @@ class UserController extends Controller
         }
     }
 
-
     public function store(Request $request)
     {
         $request->validate([
             'role_id' => ['required', 'exists:roles,id', new SQLInputValidation],
-            'email' => ['required', 'email', 'exists:employees,EmailAddress', new SQLInputValidation]
+            'email' => ['required', 'email', 'exists:employees,EmailAddress', new SQLInputValidation],
         ]);
 
         try {
@@ -222,19 +214,18 @@ class UserController extends Controller
 
             $user = User::query()
                 ->updateOrCreate([
-                    'email' => $email
+                    'email' => $email,
                 ],
                     [
                         'name' => $email,
                         'email' => $email,
-                        'password' => Hash::make('password'),
                     ]);
 
             if ($user->roles->count() > 0) {
                 return response()->json([
                     'errors' => [
-                        'email' => ['The provided email already has role assigned']
-                    ]
+                        'email' => ['The provided email already has role assigned'],
+                    ],
                 ], 422);
             }
 
@@ -246,7 +237,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User Role assigned'
+                'message' => 'User Role assigned',
             ]);
 
         } catch (Exception $exception) {
@@ -262,7 +253,7 @@ class UserController extends Controller
 
         $request->validate([
             'role_id' => ['required', 'exists:roles,id', new SQLInputValidation],
-            'email' => ['required', 'email', 'exists:employees,EmailAddress', new SQLInputValidation]
+            'email' => ['required', 'email', 'exists:employees,EmailAddress', new SQLInputValidation],
         ]);
 
         try {
@@ -273,20 +264,19 @@ class UserController extends Controller
             if ($email === Auth::user()->getAttribute('email')) {
                 return response()->json([
                     'errors' => [
-                        'email' => ['Cannot update own record']
-                    ]
+                        'email' => ['Cannot update own record'],
+                    ],
                 ], 422);
             }
 
             $user = User::query()
                 ->updateOrCreate([
-                    'email' => $email
+                    'email' => $email,
                 ],
                     [
                         'email' => $email,
                         'password' => Hash::make('password'),
                     ]);
-
 
             $user->syncRoles($role_id);
 
@@ -296,7 +286,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User Role updated'
+                'message' => 'User Role updated',
             ]);
 
         } catch (Exception $exception) {
@@ -310,7 +300,7 @@ class UserController extends Controller
     public function delete(Request $request)
     {
         $request->validate([
-            'email' => ['required', 'email', 'exists:users,email', new SQLInputValidation]
+            'email' => ['required', 'email', 'exists:users,email', new SQLInputValidation],
         ]);
 
         try {
@@ -323,8 +313,8 @@ class UserController extends Controller
             if ($user->getAttribute('id') === Auth::user()->getAttribute('id')) {
                 return response()->json([
                     'errors' => [
-                        'email' => ['Cannot delete own record']
-                    ]
+                        'email' => ['Cannot delete own record'],
+                    ],
                 ], 422);
             }
 
@@ -335,7 +325,7 @@ class UserController extends Controller
                 ->log('User removed role');
 
             return response()->json([
-                'success' => true
+                'success' => true,
             ]);
 
         } catch (Exception $exception) {
@@ -364,14 +354,14 @@ class UserController extends Controller
 
             $permissions = $user
                 ->getPermissionsViaRoles()
-                ->map(function($permission){
+                ->map(function ($permission) {
                     return $permission['name'];
                 });
 
             return response()->json([
                 'success' => true,
                 'user' => $user->only('name', 'email', 'workday_id', 'position'),
-                'permissions' => $permissions
+                'permissions' => $permissions,
             ]);
 
         } catch (Exception $exception) {
