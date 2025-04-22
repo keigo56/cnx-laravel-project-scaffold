@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,8 +13,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->delete('/auth/logout', [\App\Http\Controllers\Authentication\AzureSSOController::class, 'sso_logout']);
-Route::middleware('auth:sanctum')->group(function(){
+Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/user', [\App\Http\Controllers\Api\UserController::class, 'user']);
 
@@ -27,7 +25,6 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::post('/users/store', [\App\Http\Controllers\Api\UserController::class, 'store'])->middleware(['can:add_users']);
     Route::put('/users/update', [\App\Http\Controllers\Api\UserController::class, 'update'])->middleware(['can:edit_users']);
     Route::delete('/users/delete', [\App\Http\Controllers\Api\UserController::class, 'delete'])->middleware(['can:delete_users']);
-
 
     Route::post('/datatable/roles', [\App\Http\Controllers\Api\RoleController::class, 'dataset'])->middleware(['can:view_roles']);
     Route::post('/datatable/roles/column-distinct-values', [\App\Http\Controllers\Api\RoleController::class, 'column_distinct_values'])->middleware(['can:view_roles']);

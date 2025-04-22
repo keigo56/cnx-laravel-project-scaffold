@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 
-class AdminAuthSSOController extends Controller
+class AuthSSOController extends Controller
 {
     /*
      * The SSOAuthHandler class is responsible for handling the Azure SSO authentication flow
@@ -31,7 +31,7 @@ class AdminAuthSSOController extends Controller
         $this->authHandler = $authHandler;
         $this->authHandler->withRole('admin');
 
-        $this->redirectPath = config('services.azure.frontend_url').'/admin/auth/validate';
+        $this->redirectPath = config('services.azure.frontend_url').'/auth/validate';
     }
 
     /*
@@ -97,7 +97,7 @@ class AdminAuthSSOController extends Controller
 
             $request->session()->regenerate();
 
-            activity()->log('User logged in as Admin');
+            activity()->log('User logged in');
 
             return response()->json([
                 'success' => true,
@@ -117,7 +117,7 @@ class AdminAuthSSOController extends Controller
         try {
 
             $user = User::findOrFail(Auth::user()->id);
-            activity()->log('User logged out as Admin');
+            activity()->log('User logged out');
 
             $user->tokens()->delete();
 
@@ -128,7 +128,7 @@ class AdminAuthSSOController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Admin logout successful',
+                'message' => 'Logout successful',
             ]);
 
         } catch (Exception) {
