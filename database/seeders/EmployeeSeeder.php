@@ -21,6 +21,7 @@ class EmployeeSeeder extends Seeder
                 'MiddleName' => 'Templo',
                 'EmailAddress' => 'keigovictor.fujita@concentrix.com',
                 'Position' => 'Software Engineer II (TCF)',
+                'EmployeeStatus' => 'Active',
             ]);
 
         Employee::query()
@@ -32,6 +33,7 @@ class EmployeeSeeder extends Seeder
                 'MiddleName' => 'Teruel',
                 'EmailAddress' => 'joseaugusto.vivo@concentrix.com',
                 'Position' => 'Software Engineer II (TCF)',
+                'EmployeeStatus' => 'Active',
             ]);
 
     }

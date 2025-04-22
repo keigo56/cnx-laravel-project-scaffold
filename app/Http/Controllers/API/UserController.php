@@ -24,20 +24,22 @@ class UserController extends Controller
     {
         $this->datatable = DataTable::init()
             ->query(
-                User::query()
-                    ->select(
-                        DB::raw('users.id as user_id'),
-                        'employees.workday_id',
-                        'users.email',
-                        'employees.name',
-                        DB::raw('roles.name as role_name'),
-                        DB::raw('roles.id as role_id'),
-                    )
-                    ->leftJoin('employees', 'employees.EmailAddress', '=', 'users.email') // JOIN EMPLOYEES GET MORE DATA
-                    ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
-                    ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
-                    ->where('model_has_roles.model_type', '=', 'App\Models\User')
-                    ->whereNotIn('roles.name', ['passenger', 'driver'])
+                DB::table(
+                    User::query()
+                        ->select(
+                            DB::raw('users.id as user_id'),
+                            'employees.workday_id',
+                            'users.email',
+                            'employees.name',
+                            DB::raw('roles.name as role_name'),
+                            DB::raw('roles.id as role_id'),
+                        )
+                        ->leftJoin('employees', 'employees.EmailAddress', '=', 'users.email') // JOIN EMPLOYEES GET MORE DATA
+                        ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
+                        ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+                        ->where('model_has_roles.model_type', '=', 'App\Models\User')
+                )
+
             )
             ->columns([
                 Column::make()
